@@ -1,4 +1,7 @@
-param($NewPassword=$env:ADMINISTRATOR_PASSWORD)
+param(
+    [string]$NewPassword = $env:ADMINISTRATOR_PASSWORD
+    [string]$KmsServer = $env:KMS_SERVER
+)
 
 $DisableUpdateScript= @"
 net stop wuauserv
@@ -71,6 +74,14 @@ $PostUnattend = @"
                     <CommandLine>C:\Windows\System32\cmd.exe /c C:\disable-updates.bat</CommandLine>
                     <Order>1</Order>
                     <Description>Disable Windows Updates</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>c:\windows\system32\cscript.exe //B slmgr.vbs /skms $KmsServer</CommandLine>
+                    <Order>2</Order>
+                    <Description>Set KMS Target</Description>
+                    <CommandLine>c:\windows\system32\cscript slmgr.vbs /ato </CommandLine>
+                    <Order>3</Order>
+                    <Description>Auto Activate Windows</Description>
                 </SynchronousCommand>
             </FirstLogonCommands>
             <OOBE>
