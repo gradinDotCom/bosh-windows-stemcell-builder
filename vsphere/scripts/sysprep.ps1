@@ -1,5 +1,5 @@
 param(
-    [string]$NewPassword = $env:ADMINISTRATOR_PASSWORD
+    [string]$NewPassword = $env:ADMINISTRATOR_PASSWORD,
     [string]$KmsServer = $env:KMS_SERVER
 )
 
@@ -13,6 +13,23 @@ reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpd
 "@
 
 Out-File -FilePath C:/disable-updates.bat -InputObject $DisableUpdateScript -Encoding utf8
+
+if ($KmsServer -ne $null) {
+    $PostCmdAppend = @"
+    <SynchronousCommand wcm:action="add">
+        <CommandLine>c:\windows\system32\cscript.exe //B slmgr.vbs /skms $KmsServer</CommandLine>
+            <Order>2</Order>
+            <Description>Set KMS Target</Description>
+    </SynchronousCommand>
+    <SynchronousCommand wcm:action="add">
+        <CommandLine>c:\windows\system32\cscript slmgr.vbs /ato </CommandLine>
+            <Order>3</Order>
+            <Description>Auto Activate Windows</Description>
+    </SynchronousCommand>
+"@
+} else {
+    $PostCmdAppend = $null
+}
 
 $PostUnattend = @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -75,14 +92,7 @@ $PostUnattend = @"
                     <Order>1</Order>
                     <Description>Disable Windows Updates</Description>
                 </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>c:\windows\system32\cscript.exe //B slmgr.vbs /skms $KmsServer</CommandLine>
-                    <Order>2</Order>
-                    <Description>Set KMS Target</Description>
-                    <CommandLine>c:\windows\system32\cscript slmgr.vbs /ato </CommandLine>
-                    <Order>3</Order>
-                    <Description>Auto Activate Windows</Description>
-                </SynchronousCommand>
+                $PostCmdAppend
             </FirstLogonCommands>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
@@ -103,7 +113,6 @@ $PostUnattend = @"
     </settings>
 </unattend>
 "@
-
 
 $exists = Test-Path C:\Windows\Panther\Unattend
 if (-Not $exists) {
